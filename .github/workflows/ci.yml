@@ -106,3 +106,113 @@ jobs:
           echo "| Run | #${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Browser | Chrome (headless) |" >> $GITHUB_STEP_SUMMARY
           echo "| Java | ${{ env.JAVA_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+
+      # ── Parse Surefire results ────────────────────────────────────────────
+      - name: Parse test results
+        if: always()
+        id: test-results
+        run: |
+          REPORTS_DIR="target/surefire-reports"
+          TOTAL=0; PASSED=0; FAILED=0; ERRORS=0; SKIPPED=0
+
+          if [ -d "$REPORTS_DIR" ]; then
+            for f in "$REPORTS_DIR"/TEST-*.xml; do
+              [ -f "$f" ] || continue
+              t=$(grep -oP 'tests="\K[0-9]+' "$f" | head -1 || echo 0)
+              fa=$(grep -oP 'failures="\K[0-9]+' "$f" | head -1 || echo 0)
+              e=$(grep -oP 'errors="\K[0-9]+' "$f" | head -1 || echo 0)
+              s=$(grep -oP 'skipped="\K[0-9]+' "$f" | head -1 || echo 0)
+              TOTAL=$((TOTAL + t))
+              FAILED=$((FAILED + fa))
+              ERRORS=$((ERRORS + e))
+              SKIPPED=$((SKIPPED + s))
+            done
+            PASSED=$((TOTAL - FAILED - ERRORS - SKIPPED))
+          fi
+
+          # Determine overall status
+          if [ $((FAILED + ERRORS)) -gt 0 ]; then
+            STATUS="FAILED"
+            COLOR="#FF0000"
+            ICON=":x:"
+          else
+            STATUS="PASSED"
+            COLOR="#36A64F"
+            ICON=":white_check_mark:"
+          fi
+
+          echo "total=$TOTAL"     >> $GITHUB_OUTPUT
+          echo "passed=$PASSED"   >> $GITHUB_OUTPUT
+          echo "failed=$FAILED"   >> $GITHUB_OUTPUT
+          echo "errors=$ERRORS"   >> $GITHUB_OUTPUT
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          echo "status=$STATUS"   >> $GITHUB_OUTPUT
+          echo "color=$COLOR"     >> $GITHUB_OUTPUT
+          echo "icon=$ICON"       >> $GITHUB_OUTPUT
+
+      # ── Slack notification ────────────────────────────────────────────────
+      - name: Send Slack notification
+        if: always() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          REPORT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/allure-report"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          PAYLOAD=$(cat <<EOF
+          {
+            "attachments": [
+              {
+                "color": "${{ steps.test-results.outputs.color }}",
+                "blocks": [
+                  {
+                    "type": "header",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "${{ steps.test-results.outputs.icon }} SauceDemo UI Tests — ${{ steps.test-results.outputs.status }}"
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      { "type": "mrkdwn", "text": "*Total*\n${{ steps.test-results.outputs.total }}" },
+                      { "type": "mrkdwn", "text": "*Passed* :white_check_mark:\n${{ steps.test-results.outputs.passed }}" },
+                      { "type": "mrkdwn", "text": "*Failed* :x:\n${{ steps.test-results.outputs.failed }}" },
+                      { "type": "mrkdwn", "text": "*Errors* :warning:\n${{ steps.test-results.outputs.errors }}" },
+                      { "type": "mrkdwn", "text": "*Skipped* :fast_forward:\n${{ steps.test-results.outputs.skipped }}" },
+                      { "type": "mrkdwn", "text": "*Branch*\n\`${{ github.ref_name }}\`" }
+                    ]
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      { "type": "mrkdwn", "text": "*Commit*\n<https://github.com/${{ github.repository }}/commit/${{ github.sha }}|\`${GITHUB_SHA:0:7}\`>" },
+                      { "type": "mrkdwn", "text": "*Triggered by*\n${{ github.actor }}" }
+                    ]
+                  },
+                  {
+                    "type": "actions",
+                    "elements": [
+                      {
+                        "type": "button",
+                        "text": { "type": "plain_text", "text": "View Run" },
+                        "url": "${RUN_URL}"
+                      },
+                      {
+                        "type": "button",
+                        "text": { "type": "plain_text", "text": "Allure Report" },
+                        "url": "${REPORT_URL}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          )
+
+          curl -s -X POST \
+            -H 'Content-type: application/json' \
+            --data "$PAYLOAD" \
+            "$SLACK_WEBHOOK_URL"
