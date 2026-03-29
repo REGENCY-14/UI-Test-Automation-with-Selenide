@@ -65,4 +65,9 @@ public class CheckoutStepOnePage extends BasePage<CheckoutStepOnePage> {
     public String getErrorMessage() {
         return errorMessage.shouldBe(visible).getText();
     }
+
+    /** Exposed for negative test scenarios that expect validation errors. */
+    public SelenideElement continueButton() {
+        return continueButton;
+    }
 }
