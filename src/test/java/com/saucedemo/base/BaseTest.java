@@ -5,6 +5,7 @@ import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.WebDriverRunner;
 import com.codeborne.selenide.logevents.SelenideLogger;
 import com.saucedemo.config.ConfigProvider;
+import com.saucedemo.driver.DriverFactory;
 import com.saucedemo.extensions.RetryExtension;
 import com.saucedemo.utils.AllureAttachmentUtils;
 import io.qameta.allure.Allure;
@@ -39,6 +40,9 @@ public abstract class BaseTest {
         Configuration.browser  = ConfigProvider.getBrowser();
         Configuration.headless = ConfigProvider.isHeadless();
         Configuration.timeout  = ConfigProvider.getTimeoutMs();
+
+        // Suppress Chrome password manager / data breach popups
+        DriverFactory.configureChromeOptions();
 
         // Screenshots + page source on failure via AllureSelenide
         SelenideLogger.addListener("AllureSelenide",

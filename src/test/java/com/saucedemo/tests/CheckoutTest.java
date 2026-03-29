@@ -7,10 +7,11 @@ import io.qameta.allure.Owner;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import static com.codeborne.selenide.Selenide.open;
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,16 +20,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @Owner("QA Team")
 @Tag("checkout")
 @Tag("regression")
+@Execution(ExecutionMode.SAME_THREAD)
 class CheckoutTest extends BaseTest {
 
-    private ProductsPage productsPage;
-
-    @BeforeEach
-    void loginAndAddProduct() {
+    /** Login, add one product, and return the ProductsPage — used by every test. */
+    private ProductsPage loginAndAddBackpack() {
         open("/");
-        productsPage = new LoginPage().isLoaded()
+        ProductsPage products = new LoginPage().isLoaded()
                 .loginAs("standard_user", "secret_sauce");
-        productsPage.addToCartByName("Sauce Labs Backpack");
+        products.addToCartByName("Sauce Labs Backpack");
+        return products;
     }
 
     // ── Positive ─────────────────────────────────────────────────────────────
@@ -38,7 +39,7 @@ class CheckoutTest extends BaseTest {
     @Severity(SeverityLevel.BLOCKER)
     @DisplayName("User can complete full checkout flow")
     void completeCheckoutFlow() {
-        CheckoutCompletePage complete = productsPage
+        CheckoutCompletePage complete = loginAndAddBackpack()
                 .openCart()
                 .proceedToCheckout()
                 .fillInformation("John", "Doe", "12345")
@@ -53,7 +54,7 @@ class CheckoutTest extends BaseTest {
     @Story("Complete checkout")
     @DisplayName("Order summary shows correct item count")
     void orderSummaryShowsCorrectItemCount() {
-        CheckoutStepTwoPage summary = productsPage
+        CheckoutStepTwoPage summary = loginAndAddBackpack()
                 .openCart()
                 .proceedToCheckout()
                 .fillInformation("Jane", "Smith", "67890")
@@ -66,7 +67,7 @@ class CheckoutTest extends BaseTest {
     @Story("Complete checkout")
     @DisplayName("Order summary displays total and tax")
     void orderSummaryDisplaysTotalAndTax() {
-        CheckoutStepTwoPage summary = productsPage
+        CheckoutStepTwoPage summary = loginAndAddBackpack()
                 .openCart()
                 .proceedToCheckout()
                 .fillInformation("Jane", "Smith", "67890")
@@ -80,7 +81,7 @@ class CheckoutTest extends BaseTest {
     @Story("Complete checkout")
     @DisplayName("After order completion user can return to products")
     void afterOrderUserCanReturnToProducts() {
-        ProductsPage products = productsPage
+        ProductsPage products = loginAndAddBackpack()
                 .openCart()
                 .proceedToCheckout()
                 .fillInformation("John", "Doe", "12345")
@@ -98,7 +99,7 @@ class CheckoutTest extends BaseTest {
     @Severity(SeverityLevel.NORMAL)
     @DisplayName("Missing first name shows error on checkout step one")
     void missingFirstNameShowsError() {
-        CheckoutStepOnePage stepOne = productsPage
+        CheckoutStepOnePage stepOne = loginAndAddBackpack()
                 .openCart()
                 .proceedToCheckout()
                 .fillInformation("", "Doe", "12345");
@@ -112,7 +113,7 @@ class CheckoutTest extends BaseTest {
     @Story("Checkout validation")
     @DisplayName("Missing last name shows error on checkout step one")
     void missingLastNameShowsError() {
-        CheckoutStepOnePage stepOne = productsPage
+        CheckoutStepOnePage stepOne = loginAndAddBackpack()
                 .openCart()
                 .proceedToCheckout()
                 .fillInformation("John", "", "12345");
@@ -126,7 +127,7 @@ class CheckoutTest extends BaseTest {
     @Story("Checkout validation")
     @DisplayName("Missing postal code shows error on checkout step one")
     void missingPostalCodeShowsError() {
-        CheckoutStepOnePage stepOne = productsPage
+        CheckoutStepOnePage stepOne = loginAndAddBackpack()
                 .openCart()
                 .proceedToCheckout()
                 .fillInformation("John", "Doe", "");
@@ -140,7 +141,7 @@ class CheckoutTest extends BaseTest {
     @Story("Checkout navigation")
     @DisplayName("Cancelling checkout step one returns to cart")
     void cancelCheckoutStepOneReturnsToCart() {
-        CartPage cart = productsPage
+        CartPage cart = loginAndAddBackpack()
                 .openCart()
                 .proceedToCheckout()
                 .cancel();
@@ -152,7 +153,7 @@ class CheckoutTest extends BaseTest {
     @Story("Checkout navigation")
     @DisplayName("Cancelling checkout step two returns to products")
     void cancelCheckoutStepTwoReturnsToProducts() {
-        ProductsPage products = productsPage
+        ProductsPage products = loginAndAddBackpack()
                 .openCart()
                 .proceedToCheckout()
                 .fillInformation("John", "Doe", "12345")
@@ -168,9 +169,13 @@ class CheckoutTest extends BaseTest {
     @Story("Complete checkout")
     @DisplayName("Checkout works with multiple items in cart")
     void checkoutWithMultipleItems() {
-        productsPage.addToCartByName("Sauce Labs Bike Light");
+        open("/");
+        ProductsPage products = new LoginPage().isLoaded()
+                .loginAs("standard_user", "secret_sauce");
+        products.addToCartByName("Sauce Labs Backpack");
+        products.addToCartByName("Sauce Labs Bike Light");
 
-        CheckoutStepTwoPage summary = productsPage
+        CheckoutStepTwoPage summary = products
                 .openCart()
                 .proceedToCheckout()
                 .fillInformation("John", "Doe", "12345")

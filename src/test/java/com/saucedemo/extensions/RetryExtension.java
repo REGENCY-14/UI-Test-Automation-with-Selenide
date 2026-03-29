@@ -34,6 +34,11 @@ public class RetryExtension implements TestExecutionExceptionHandler {
             LOG.warning(String.format("[Retry] %s — attempt %d/%d failed: %s",
                     context.getDisplayName(), attempt, MAX_RETRIES, throwable.getMessage()));
 
+            // Close browser to get a clean state before retry
+            try {
+                com.codeborne.selenide.Selenide.closeWebDriver();
+            } catch (Exception ignored) {}
+
             // Re-invoke the test method directly
             context.getRequiredTestMethod().invoke(context.getRequiredTestInstance());
         } else {
