@@ -20,6 +20,11 @@
         <allure.version>2.27.0</allure.version>
         <aspectj.version>1.9.21</aspectj.version>
         <surefire.version>3.2.5</surefire.version>
+
+        <!-- Overridable via -D flags (used by CI) -->
+        <browser>chrome</browser>
+        <headless>true</headless>
+        <base.url>https://www.saucedemo.com</base.url>
     </properties>
 
     <dependencies>
@@ -36,6 +41,13 @@
             <artifactId>junit-jupiter</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Allure annotations available to main sources (pages, utils) -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-java-commons</artifactId>
+            <version>${allure.version}</version>
         </dependency>
 
         <!-- Allure JUnit 5 -->
@@ -79,11 +91,21 @@
                     </argLine>
                     <systemPropertyVariables>
                         <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
+                        <browser>${browser}</browser>
+                        <headless>${headless}</headless>
+                        <base.url>${base.url}</base.url>
                     </systemPropertyVariables>
+                    <properties>
+                        <property>
+                            <name>listener</name>
+                            <value>io.qameta.allure.junit5.AllureJunit5</value>
+                        </property>
+                    </properties>
                     <includes>
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
                     </includes>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                 </configuration>
                 <dependencies>
                     <dependency>
