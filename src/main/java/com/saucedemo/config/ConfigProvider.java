@@ -32,9 +32,16 @@ public final class ConfigProvider {
     }
 
     private static String get(String key) {
-        // System property takes precedence over file value
+        // Priority: system property → environment variable → properties file
         String sysVal = System.getProperty(key);
-        return (sysVal != null && !sysVal.isBlank()) ? sysVal : PROPS.getProperty(key);
+        if (sysVal != null && !sysVal.isBlank()) return sysVal;
+
+        // Map property keys to env var names (e.g. base.url → BASE_URL)
+        String envKey = key.toUpperCase().replace('.', '_');
+        String envVal = System.getenv(envKey);
+        if (envVal != null && !envVal.isBlank()) return envVal;
+
+        return PROPS.getProperty(key);
     }
 
     public static String getBaseUrl() {
