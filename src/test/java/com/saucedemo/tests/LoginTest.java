@@ -4,6 +4,9 @@ import com.saucedemo.base.BaseTest;
 import com.saucedemo.pages.LoginPage;
 import com.saucedemo.pages.ProductsPage;
 import io.qameta.allure.Feature;
+import io.qameta.allure.Owner;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +16,7 @@ import static com.codeborne.selenide.Selenide.open;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Feature("Authentication")
+@Owner("QA Team")
 class LoginTest extends BaseTest {
 
     private LoginPage loginPage;
@@ -27,6 +31,7 @@ class LoginTest extends BaseTest {
 
     @Test
     @Story("Valid login")
+    @Severity(SeverityLevel.CRITICAL)
     @DisplayName("Standard user can log in successfully")
     void standardUserCanLogin() {
         ProductsPage products = loginPage.loginAs("standard_user", "secret_sauce");
@@ -45,6 +50,7 @@ class LoginTest extends BaseTest {
 
     @Test
     @Story("Invalid login")
+    @Severity(SeverityLevel.CRITICAL)
     @DisplayName("Wrong password shows error message")
     void wrongPasswordShowsError() {
         loginPage.loginWithInvalidCredentials("standard_user", "wrong_password");
@@ -84,6 +90,7 @@ class LoginTest extends BaseTest {
 
     @Test
     @Story("Locked user")
+    @Severity(SeverityLevel.CRITICAL)
     @DisplayName("Locked out user sees specific error")
     void lockedOutUserSeesError() {
         loginPage.loginWithInvalidCredentials("locked_out_user", "secret_sauce");

@@ -5,6 +5,9 @@ import com.saucedemo.pages.CartPage;
 import com.saucedemo.pages.LoginPage;
 import com.saucedemo.pages.ProductsPage;
 import io.qameta.allure.Feature;
+import io.qameta.allure.Owner;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +17,7 @@ import static com.codeborne.selenide.Selenide.open;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Feature("Shopping Cart")
+@Owner("QA Team")
 class AddToCartTest extends BaseTest {
 
     private ProductsPage productsPage;
@@ -29,6 +33,7 @@ class AddToCartTest extends BaseTest {
 
     @Test
     @Story("Add to cart")
+    @Severity(SeverityLevel.CRITICAL)
     @DisplayName("Adding one product increments cart badge to 1")
     void addOneProductUpdatesCartBadge() {
         productsPage.addToCartByName("Sauce Labs Backpack");
