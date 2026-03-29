@@ -11,6 +11,7 @@ import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static com.codeborne.selenide.Selenide.open;
@@ -18,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Feature("Shopping Cart")
 @Owner("QA Team")
+@Tag("cart")
+@Tag("regression")
 class AddToCartTest extends BaseTest {
 
     private ProductsPage productsPage;

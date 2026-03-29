@@ -45,7 +45,14 @@ public final class ConfigProvider {
     }
 
     public static String getBaseUrl() {
-        return get("base.url");
+        // If an explicit base.url/-Dbase.url/BASE_URL is set, honour it directly.
+        // Otherwise derive from the active Environment enum.
+        String explicit = get("base.url");
+        String defaultUrl = Environment.PROD.getBaseUrl();
+        if (explicit != null && !explicit.equals(defaultUrl)) {
+            return explicit;
+        }
+        return Environment.active().getBaseUrl();
     }
 
     public static String getBrowser() {
