@@ -10,6 +10,7 @@ import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static com.codeborne.selenide.Selenide.open;
@@ -17,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Feature("Authentication")
 @Owner("QA Team")
+@Tag("authentication")
+@Tag("smoke")
 class LoginTest extends BaseTest {
 
     private LoginPage loginPage;

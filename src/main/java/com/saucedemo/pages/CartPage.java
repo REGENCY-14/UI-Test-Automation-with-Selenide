@@ -13,11 +13,11 @@ import static com.codeborne.selenide.Selenide.$$;
  */
 public class CartPage extends BasePage<CartPage> {
 
-    private final SelenideElement pageTitle        = $(".title");
-    private final SelenideElement checkoutButton   = $("[data-test='checkout']");
+    private final SelenideElement pageTitle           = $(".title");
+    private final SelenideElement checkoutButton      = $("[data-test='checkout']");
     private final SelenideElement continueShoppingBtn = $("[data-test='continue-shopping']");
-    private final ElementsCollection cartItems     = $$(".cart_item");
-    private final ElementsCollection itemNames     = $$(".inventory_item_name");
+    private final ElementsCollection cartItems        = $$(".cart_item");
+    private final ElementsCollection itemNames        = $$(".inventory_item_name");
 
     @Override
     public CartPage isLoaded() {
@@ -46,7 +46,7 @@ public class CartPage extends BasePage<CartPage> {
 
     @Step("Proceed to checkout")
     public CheckoutStepOnePage proceedToCheckout() {
-        checkoutButton.shouldBe(visible).click();
+        checkoutButton.shouldBe(visible).shouldBe(enabled).click();
         return new CheckoutStepOnePage().isLoaded();
     }
 
