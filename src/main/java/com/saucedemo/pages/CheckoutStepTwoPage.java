@@ -2,6 +2,8 @@ package com.saucedemo.pages;
 
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
+import com.saucedemo.config.BasePage;
+
 import io.qameta.allure.Step;
 
 import static com.codeborne.selenide.Condition.*;
