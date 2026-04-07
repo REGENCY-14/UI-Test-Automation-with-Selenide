@@ -5,6 +5,8 @@ import com.codeborne.selenide.SelenideElement;
 import com.saucedemo.config.BasePage;
 
 import io.qameta.allure.Step;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedCondition;
 
 import static com.codeborne.selenide.Condition.*;
 import static com.codeborne.selenide.Selenide.$;
@@ -51,7 +53,7 @@ public class CartPage extends BasePage<CartPage> {
      */
     @Override
     public CartPage isLoaded() {
-        pageTitle.shouldBe(visible).shouldHave(text("Your Cart"));
+        pageTitle.shouldBe(visible).shouldHave(text("Fake Cart"));
         return this;
     }
 
