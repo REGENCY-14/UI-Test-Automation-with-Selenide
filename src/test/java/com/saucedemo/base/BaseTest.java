@@ -5,6 +5,8 @@ import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.WebDriverRunner;
 import com.codeborne.selenide.logevents.SelenideLogger;
 import com.saucedemo.config.ConfigProvider;
+import com.saucedemo.driver.DriverFactory;
+import com.saucedemo.extensions.RetryExtension;
 import com.saucedemo.utils.AllureAttachmentUtils;
 import io.qameta.allure.Allure;
 import io.qameta.allure.junit5.AllureJunit5;
@@ -13,6 +15,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,7 +30,8 @@ import java.nio.file.StandardCopyOption;
  * Handles Selenide configuration, Allure listener registration,
  * environment.properties propagation, and browser teardown.
  */
-@ExtendWith(AllureJunit5.class)
+@ExtendWith({AllureJunit5.class, RetryExtension.class})
+@Execution(ExecutionMode.SAME_THREAD)   // methods within a class run sequentially
 public abstract class BaseTest {
 
     @BeforeEach
@@ -35,6 +40,9 @@ public abstract class BaseTest {
         Configuration.browser  = ConfigProvider.getBrowser();
         Configuration.headless = ConfigProvider.isHeadless();
         Configuration.timeout  = ConfigProvider.getTimeoutMs();
+
+        // Suppress Chrome password manager / data breach popups
+        DriverFactory.configureChromeOptions();
 
         // Screenshots + page source on failure via AllureSelenide
         SelenideLogger.addListener("AllureSelenide",
