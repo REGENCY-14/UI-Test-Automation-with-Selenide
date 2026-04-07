@@ -25,6 +25,9 @@
         <browser>chrome</browser>
         <headless>true</headless>
         <base.url>https://www.saucedemo.com</base.url>
+        <env>prod</env>
+        <test.retry.count>2</test.retry.count>
+        <parallel.forks>1</parallel.forks>
     </properties>
 
     <dependencies>
@@ -94,7 +97,11 @@
                         <browser>${browser}</browser>
                         <headless>${headless}</headless>
                         <base.url>${base.url}</base.url>
+                        <env>${env}</env>
+                        <test.retry.count>${test.retry.count}</test.retry.count>
                     </systemPropertyVariables>
+                    <forkCount>${parallel.forks}</forkCount>
+                    <reuseForks>true</reuseForks>
                     <properties>
                         <property>
                             <name>listener</name>

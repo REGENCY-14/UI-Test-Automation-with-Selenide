@@ -52,7 +52,7 @@ public class CheckoutStepOnePage extends BasePage<CheckoutStepOnePage> {
 
     @Step("Continue to order summary")
     public CheckoutStepTwoPage continueToSummary() {
-        continueButton.click();
+        continueButton.shouldBe(visible).shouldBe(enabled).click();
         return new CheckoutStepTwoPage().isLoaded();
     }
 
