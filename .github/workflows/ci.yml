@@ -1,0 +1,221 @@
+name: UI Automation Tests
+
+on:
+  push:
+    branches: [ "main", "develop", "feature/**" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_OPTS: '-Xmx2048m'
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Run Selenide Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Java ────────────────────────────────────────────────────────────────
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+
+      # ── Maven cache ─────────────────────────────────────────────────────────
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # ── Chrome ──────────────────────────────────────────────────────────────
+      - name: Install Google Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      # ── Run tests ───────────────────────────────────────────────────────────
+      - name: Run tests
+        run: |
+          mvn test \
+            -Dbrowser=chrome \
+            -Dheadless=true \
+            -Dbase.url=https://www.saucedemo.com \
+            --no-transfer-progress
+        continue-on-error: true
+
+      # ── Allure report ───────────────────────────────────────────────────────
+      - name: Generate Allure report
+        if: always()
+        run: mvn allure:report --no-transfer-progress
+
+      # ── Upload Allure results (raw JSON) ────────────────────────────────────
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ github.run_number }}
+          path: target/allure-results
+          retention-days: 30
+
+      # ── Upload Allure HTML report ────────────────────────────────────────────
+      - name: Upload Allure HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ github.run_number }}
+          path: target/site/allure-maven-plugin
+          retention-days: 30
+
+      # ── Upload Surefire XML reports ──────────────────────────────────────────
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-${{ github.run_number }}
+          path: target/surefire-reports
+          retention-days: 14
+
+      # ── Publish Allure report to GitHub Pages ────────────────────────────────
+      - name: Deploy Allure report to GitHub Pages
+        if: github.ref == 'refs/heads/main' && always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: target/site/allure-maven-plugin
+          destination_dir: allure-report
+
+      # ── Job summary ──────────────────────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run | #${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser | Chrome (headless) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Java | ${{ env.JAVA_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+
+      # ── Parse Surefire results ────────────────────────────────────────────
+      - name: Parse test results
+        if: always()
+        id: test-results
+        run: |
+          REPORTS_DIR="target/surefire-reports"
+          TOTAL=0; PASSED=0; FAILED=0; ERRORS=0; SKIPPED=0
+
+          if [ -d "$REPORTS_DIR" ]; then
+            for f in "$REPORTS_DIR"/TEST-*.xml; do
+              [ -f "$f" ] || continue
+              t=$(grep -oP 'tests="\K[0-9]+' "$f" | head -1 || echo 0)
+              fa=$(grep -oP 'failures="\K[0-9]+' "$f" | head -1 || echo 0)
+              e=$(grep -oP 'errors="\K[0-9]+' "$f" | head -1 || echo 0)
+              s=$(grep -oP 'skipped="\K[0-9]+' "$f" | head -1 || echo 0)
+              TOTAL=$((TOTAL + t))
+              FAILED=$((FAILED + fa))
+              ERRORS=$((ERRORS + e))
+              SKIPPED=$((SKIPPED + s))
+            done
+            PASSED=$((TOTAL - FAILED - ERRORS - SKIPPED))
+          fi
+
+          # Determine overall status
+          if [ $((FAILED + ERRORS)) -gt 0 ]; then
+            STATUS="FAILED"
+            COLOR="#FF0000"
+            ICON=":x:"
+          else
+            STATUS="PASSED"
+            COLOR="#36A64F"
+            ICON=":white_check_mark:"
+          fi
+
+          echo "total=$TOTAL"     >> $GITHUB_OUTPUT
+          echo "passed=$PASSED"   >> $GITHUB_OUTPUT
+          echo "failed=$FAILED"   >> $GITHUB_OUTPUT
+          echo "errors=$ERRORS"   >> $GITHUB_OUTPUT
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          echo "status=$STATUS"   >> $GITHUB_OUTPUT
+          echo "color=$COLOR"     >> $GITHUB_OUTPUT
+          echo "icon=$ICON"       >> $GITHUB_OUTPUT
+
+      # ── Slack notification ────────────────────────────────────────────────
+      - name: Send Slack notification
+        if: always() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          REPORT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/allure-report"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          PAYLOAD=$(cat <<EOF
+          {
+            "attachments": [
+              {
+                "color": "${{ steps.test-results.outputs.color }}",
+                "blocks": [
+                  {
+                    "type": "header",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "${{ steps.test-results.outputs.icon }} SauceDemo UI Tests — ${{ steps.test-results.outputs.status }}"
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      { "type": "mrkdwn", "text": "*Total*\n${{ steps.test-results.outputs.total }}" },
+                      { "type": "mrkdwn", "text": "*Passed* :white_check_mark:\n${{ steps.test-results.outputs.passed }}" },
+                      { "type": "mrkdwn", "text": "*Failed* :x:\n${{ steps.test-results.outputs.failed }}" },
+                      { "type": "mrkdwn", "text": "*Errors* :warning:\n${{ steps.test-results.outputs.errors }}" },
+                      { "type": "mrkdwn", "text": "*Skipped* :fast_forward:\n${{ steps.test-results.outputs.skipped }}" },
+                      { "type": "mrkdwn", "text": "*Branch*\n\`${{ github.ref_name }}\`" }
+                    ]
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      { "type": "mrkdwn", "text": "*Commit*\n<https://github.com/${{ github.repository }}/commit/${{ github.sha }}|\`${GITHUB_SHA:0:7}\`>" },
+                      { "type": "mrkdwn", "text": "*Triggered by*\n${{ github.actor }}" }
+                    ]
+                  },
+                  {
+                    "type": "actions",
+                    "elements": [
+                      {
+                        "type": "button",
+                        "text": { "type": "plain_text", "text": "View Run" },
+                        "url": "${RUN_URL}"
+                      },
+                      {
+                        "type": "button",
+                        "text": { "type": "plain_text", "text": "Allure Report" },
+                        "url": "${REPORT_URL}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          )
+
+          curl -s -X POST \
+            -H 'Content-type: application/json' \
+            --data "$PAYLOAD" \
+            "$SLACK_WEBHOOK_URL"
