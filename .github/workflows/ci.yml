@@ -144,6 +144,22 @@ jobs:
             ICON=":white_check_mark:"
           fi
 
+          # Collect failed test names
+          FAILED_TESTS=""
+          if [ $((FAILED + ERRORS)) -gt 0 ] && [ -d "$REPORTS_DIR" ]; then
+            FAILED_TESTS=$(python3 - <<'PYEOF'
+import glob, xml.etree.ElementTree as ET, os
+names = []
+for f in glob.glob("target/surefire-reports/TEST-*.xml"):
+    tree = ET.parse(f)
+    for tc in tree.findall(".//testcase"):
+        if tc.find("failure") is not None or tc.find("error") is not None:
+            names.append("\u2022 " + tc.get("classname", "").split(".")[-1] + "." + tc.get("name", ""))
+print("\n".join(names))
+PYEOF
+            )
+          fi
+
           echo "total=$TOTAL"     >> $GITHUB_OUTPUT
           echo "passed=$PASSED"   >> $GITHUB_OUTPUT
           echo "failed=$FAILED"   >> $GITHUB_OUTPUT
@@ -152,15 +168,24 @@ jobs:
           echo "status=$STATUS"   >> $GITHUB_OUTPUT
           echo "color=$COLOR"     >> $GITHUB_OUTPUT
           echo "icon=$ICON"       >> $GITHUB_OUTPUT
+          echo "failed_tests=$FAILED_TESTS" >> $GITHUB_OUTPUT
 
       # ── Slack notification ────────────────────────────────────────────────
       - name: Send Slack notification
         if: always() && env.SLACK_WEBHOOK_URL != ''
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          FAILED_TESTS: ${{ steps.test-results.outputs.failed_tests }}
         run: |
           REPORT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/allure-report"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Build optional failed-tests block
+          if [ -n "$FAILED_TESTS" ]; then
+            FAILED_BLOCK=$(printf ',{"type":"section","text":{"type":"mrkdwn","text":"*:x: Failed Tests:*\n%s"}}' "$FAILED_TESTS")
+          else
+            FAILED_BLOCK=""
+          fi
 
           PAYLOAD=$(cat <<EOF
           {
@@ -192,8 +217,9 @@ jobs:
                       { "type": "mrkdwn", "text": "*Commit*\n<https://github.com/${{ github.repository }}/commit/${{ github.sha }}|\`${GITHUB_SHA:0:7}\`>" },
                       { "type": "mrkdwn", "text": "*Triggered by*\n${{ github.actor }}" }
                     ]
-                  },
-                  {
+                  }
+                  ${FAILED_BLOCK}
+                  ,{
                     "type": "actions",
                     "elements": [
                       {
