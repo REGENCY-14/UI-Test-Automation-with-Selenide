@@ -52,7 +52,7 @@ public class CheckoutStepOnePage extends BasePage<CheckoutStepOnePage> {
 
     @Step("Continue to order summary")
     public CheckoutStepTwoPage continueToSummary() {
-        continueButton.click();
+        continueButton.shouldBe(visible).shouldBe(enabled).click();
         return new CheckoutStepTwoPage().isLoaded();
     }
 
@@ -64,5 +64,10 @@ public class CheckoutStepOnePage extends BasePage<CheckoutStepOnePage> {
 
     public String getErrorMessage() {
         return errorMessage.shouldBe(visible).getText();
+    }
+
+    /** Exposed for negative test scenarios that expect validation errors. */
+    public SelenideElement continueButton() {
+        return continueButton;
     }
 }
