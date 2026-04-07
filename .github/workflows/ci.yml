@@ -147,17 +147,7 @@ jobs:
           # Collect failed test names
           FAILED_TESTS=""
           if [ $((FAILED + ERRORS)) -gt 0 ] && [ -d "$REPORTS_DIR" ]; then
-            FAILED_TESTS=$(python3 - <<'PYEOF'
-import glob, xml.etree.ElementTree as ET, os
-names = []
-for f in glob.glob("target/surefire-reports/TEST-*.xml"):
-    tree = ET.parse(f)
-    for tc in tree.findall(".//testcase"):
-        if tc.find("failure") is not None or tc.find("error") is not None:
-            names.append("\u2022 " + tc.get("classname", "").split(".")[-1] + "." + tc.get("name", ""))
-print("\n".join(names))
-PYEOF
-            )
+            FAILED_TESTS=$(python3 .github/scripts/parse_failures.py)
           fi
 
           echo "total=$TOTAL"     >> $GITHUB_OUTPUT
