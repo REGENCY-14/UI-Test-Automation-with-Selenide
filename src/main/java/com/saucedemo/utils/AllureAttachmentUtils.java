@@ -1,6 +1,5 @@
 package com.saucedemo.utils;
 
-import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.WebDriverRunner;
 import io.qameta.allure.Allure;
 import io.qameta.allure.Attachment;
@@ -25,7 +24,9 @@ public final class AllureAttachmentUtils {
 
     @Attachment(value = "Page Source", type = "text/html")
     public static byte[] attachPageSource() {
-        return Selenide.source().getBytes(StandardCharsets.UTF_8);
+        return WebDriverRunner.getWebDriver()
+                .getPageSource()
+                .getBytes(StandardCharsets.UTF_8);
     }
 
     @Attachment(value = "Page URL", type = "text/plain")

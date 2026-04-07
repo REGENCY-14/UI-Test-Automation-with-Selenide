@@ -11,6 +11,7 @@ import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static com.codeborne.selenide.Selenide.open;
@@ -18,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Feature("Shopping Cart")
 @Owner("QA Team")
+@Tag("cart")
+@Tag("regression")
 class AddToCartTest extends BaseTest {
 
     private ProductsPage productsPage;
@@ -28,7 +31,6 @@ class AddToCartTest extends BaseTest {
         productsPage = new LoginPage().isLoaded()
                 .loginAs("standard_user", "secret_sauce");
     }
-
     // ── Positive ─────────────────────────────────────────────────────────────
 
     @Test
@@ -61,16 +63,17 @@ class AddToCartTest extends BaseTest {
 
     @Test
     @Story("Add to cart")
+    @Severity(SeverityLevel.CRITICAL)
     @DisplayName("All six products can be added to cart")
     void allProductsCanBeAddedToCart() {
-        int total = productsPage.getProductCount();
+        // Add all products (each has its own add-to-cart button)
         productsPage.addToCartByName("Sauce Labs Backpack");
         productsPage.addToCartByName("Sauce Labs Bike Light");
         productsPage.addToCartByName("Sauce Labs Bolt T-Shirt");
         productsPage.addToCartByName("Sauce Labs Fleece Jacket");
         productsPage.addToCartByName("Sauce Labs Onesie");
         productsPage.addToCartByName("Test.allTheThings() T-Shirt (Red)");
-        assertEquals(total, productsPage.getCartCount());
+        assertEquals(6, productsPage.getCartCount());
     }
 
     // ── Negative ─────────────────────────────────────────────────────────────
